@@ -1,5 +1,5 @@
-// Финальное задание курса Основы разработки на C++: белый пояс
-// Всё в одном файле, потому что так требует Курсера
+// Final task of White Belt course
+// All code in one file because of Coursera requirements
 
 #include <iostream>
 #include <string>
@@ -10,8 +10,6 @@
 #include <iomanip>
 
 using namespace std;
-
-// Реализуйте функции и методы классов и при необходимости добавьте свои
 
 class Date {
 public:
@@ -58,7 +56,7 @@ bool operator<(const Date& lhs, const Date& rhs) {
         return false;
     else if (lhs.GetDay() < rhs.GetDay())
         return true;
-    else // даты совпадают
+    else // same dates
         return false;
 }
 
@@ -154,7 +152,7 @@ Date StringToDate(const string& s) {
     stringstream stream(s);
     Date date;
 
-    // проверка первого символа
+    // check first symbol
     if (stream.peek() != '-' && stream.peek() != '+' && (stream.peek() < '0' || stream.peek() > '9')) {
         stringstream ss;
         ss << "Wrong date format: " << s;
@@ -175,14 +173,14 @@ Date StringToDate(const string& s) {
         throw runtime_error(ss.str());
     }
 
-    // проверка последнего символа
+    // check last symbol
     if (stream.peek() != -1) {
         stringstream ss;
         ss << "Wrong date format: " << s;
         throw runtime_error(ss.str());
     }
 
-    // проверка корректности диапазонов
+    // checking whether ranges are correct
     if (month < 1 || month > 12) {
         stringstream ss;
         ss << "Month value is invalid: " << month;
@@ -203,8 +201,6 @@ int main() {
     string command;
 
     while (getline(cin, command)) {
-        // Считайте команды с потока ввода и обработайте каждую
-
         stringstream stream(command);
         string command_name;
         stream >> command_name;

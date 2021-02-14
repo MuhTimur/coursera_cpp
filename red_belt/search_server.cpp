@@ -28,21 +28,26 @@ void SearchServer::UpdateDocumentBase(istream& document_input) {
 void SearchServer::AddQueriesStream(
 	istream& query_input, ostream& search_results_output
 ) {
+
+	vector<pair<size_t, size_t>> search_results(50'000);
+
 	for (string current_query; getline(query_input, current_query); ) {
 		const auto words = SplitIntoWords(current_query);
 
-		map<size_t, size_t> docid_count;
+		fill(search_results.begin(), search_results.end(), make_pair(0, 0));
+
+		// make vector with pairs {doc_id , hitcount} for each word
 		for (const auto& word : words) {
-			for (const size_t docid : index.Lookup(word)) {
-				docid_count[docid]++;
+			for (const pair<size_t, size_t>& docid : index.Lookup(word)) {
+				search_results[docid.first].first = docid.first;
+				search_results[docid.first].second += docid.second;
 			}
 		}
 
-		vector<pair<size_t, size_t>> search_results(
-			docid_count.begin(), docid_count.end()
-		);
-		sort(
+		partial_sort(
 			begin(search_results),
+			// first 5 results
+			search_results.size() < 5 ? end(search_results) : begin(search_results) + 5,
 			end(search_results),
 			[](pair<size_t, size_t> lhs, pair<size_t, size_t> rhs) {
 				int64_t lhs_docid = lhs.first;
@@ -53,11 +58,13 @@ void SearchServer::AddQueriesStream(
 			}
 		);
 
+		// print only non-empty pairs
 		search_results_output << current_query << ':';
 		for (auto [docid, hitcount] : Head(search_results, 5)) {
-			search_results_output << " {"
-				<< "docid: " << docid << ", "
-				<< "hitcount: " << hitcount << '}';
+			if(!(docid == 0 && hitcount == 0))
+			    search_results_output << " {"
+				    << "docid: " << docid << ", "
+				    << "hitcount: " << hitcount << '}';
 		}
 		search_results_output << endl;
 	}
@@ -67,12 +74,24 @@ void InvertedIndex::Add(const string& document) {
 	docs.push_back(document);
 
 	const size_t docid = docs.size() - 1;
-	for (const auto& word : SplitIntoWords(document)) {
-		index[word].push_back(docid);
+	auto words = SplitIntoWords(document);
+
+	map<string, map<size_t, size_t>> tmp_map;
+
+	// count the number of occurrences of a word in a document 
+	for (const auto& word : words) {
+		tmp_map[word][docid] = count(words.begin(), words.end(), word);
+	}
+
+	// make vector of pairs from map and move it to index
+	for (const auto& word : tmp_map) {
+		vector<pair<size_t, size_t>> tmp_vec(tmp_map[word.first].begin(), tmp_map[word.first].end());
+		move(tmp_vec.begin(), tmp_vec.end(), inserter(index[word.first], index[word.first].end()));
 	}
 }
 
-list<size_t> InvertedIndex::Lookup(const string& word) const {
+vector<pair<size_t, size_t>> InvertedIndex::Lookup(const string& word) const {
+	// return vector of pairs {doc_id, hitcount}
 	if (auto it = index.find(word); it != index.end()) {
 		return it->second;
 	}
